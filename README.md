@@ -1,1 +1,0 @@
-Readme informativo del proyecto.

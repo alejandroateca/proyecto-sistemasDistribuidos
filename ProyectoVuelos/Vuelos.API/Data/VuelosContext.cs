@@ -23,8 +23,8 @@ namespace Vuelos.API.Data
 
             // (Datos falsos para la demo)
             modelBuilder.Entity<Vuelo>().HasData(
-                new Vuelo { Id = 1, OrigenId = "MAD", DestinoId = "BCN", Fecha = DateTime.Now.AddDays(1), Precio = 50, AsientosTotales = 100, AsientosOcupados = 10 },
-                new Vuelo { Id = 2, OrigenId = "MAD", DestinoId = "JFK", Fecha = DateTime.Now.AddDays(2), Precio = 450, AsientosTotales = 200, AsientosOcupados = 199 }
+                new Vuelo { Id = 1, Origen = "MAD", Destino = "BCN", Fecha = DateTime.Now.AddDays(1), Precio = 50, AsientosTotales = 100, AsientosOcupados = 10 },
+                new Vuelo { Id = 2, Origen = "MAD", Destino = "JFK", Fecha = DateTime.Now.AddDays(2), Precio = 450, AsientosTotales = 200, AsientosOcupados = 199 }
             );
         }
     }

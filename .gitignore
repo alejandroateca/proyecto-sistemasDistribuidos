@@ -2,7 +2,6 @@
 .vs/
 *.user
 *.suo
-*.slnx
 
 # Archivos compilados (binarios)
 bin/

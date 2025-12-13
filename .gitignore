@@ -1,0 +1,11 @@
+# Archivos temporales de Visual Studio
+.vs/
+*.user
+*.suo
+*.slnx
+
+# Archivos compilados (binarios)
+bin/
+obj/
+Debug/
+Release/

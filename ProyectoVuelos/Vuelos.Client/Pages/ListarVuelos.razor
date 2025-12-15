@@ -24,9 +24,10 @@
             </div>
         </div>
 
-        <a href="crear-vuelo" class="btn btn-success">
+        @* Botón eliminado *@
+        @* <a href="crear-vuelo" class="btn btn-success">
             + Nuevo Vuelo
-        </a>
+        </a> *@
     </div>
 
     @if (vuelos == null)
@@ -127,13 +128,12 @@
     private List<VueloDto>? vuelos;
     private string FiltroEstado = "Activos";
 
-    // Propiedad calculada para aplicar el filtro
     private IEnumerable<VueloDto> VuelosFiltrados => vuelos switch
     {
         null => Enumerable.Empty<VueloDto>(),
         _ when FiltroEstado == "Activos" => vuelos.Where(v => v.Activo).OrderBy(v => v.Fecha),
         _ when FiltroEstado == "Inactivos" => vuelos.Where(v => !v.Activo).OrderBy(v => v.Fecha),
-        _ => vuelos.OrderBy(v => v.Fecha) // Todos
+        _ => vuelos.OrderBy(v => v.Fecha)
     };
 
     protected override async Task OnInitializedAsync()
@@ -141,7 +141,6 @@
         await CargarVuelos();
     }
 
-    // Método para forzar la actualización del filtro
     private void HandleFiltroChange(ChangeEventArgs e)
     {
         FiltroEstado = e.Value?.ToString() ?? "Activos";
@@ -152,8 +151,6 @@
     {
         try
         {
-            // OJO: La API GetVuelos del servidor también debe devolver TODOS los vuelos,
-            // no solo los activos, para que el filtro funcione.
             vuelos = await Http.GetFromJsonAsync<List<VueloDto>>("api/Vuelo");
         }
         catch (Exception ex)
@@ -171,18 +168,15 @@
 
         if (confirmado)
         {
-            // ⚠️ Creamos una API para gestionar el estado, ya que la API GET/POST/DELETE no es ideal para PATCH/PUT de estado.
             var respuesta = await Http.PutAsync($"api/Vuelo/estado/{id}?activo={activar}", null);
 
             if (respuesta.IsSuccessStatusCode)
             {
-                // Si la gestión es exitosa, recargamos los datos
                 await CargarVuelos();
             }
             else
             {
                 Console.WriteLine($"Error al {accion.ToLower()} el vuelo. Código: {respuesta.StatusCode}");
-                // Aquí podrías leer el error del contenido si la API lo proporciona.
             }
         }
     }

@@ -15,6 +15,7 @@ namespace Vuelos.API.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Relaciones con Aeropuertos
             modelBuilder.Entity<Vuelo>()
                 .HasOne(v => v.Origen)
                 .WithMany()
@@ -27,6 +28,14 @@ namespace Vuelos.API.Data
                 .HasForeignKey(v => v.DestinoCodigo)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // NUEVO: Relación Vuelo → Reservas
+            modelBuilder.Entity<Vuelo>()
+                .HasMany(v => v.Reservas)
+                .WithOne(r => r.Vuelo)
+                .HasForeignKey(r => r.VueloId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Seed de Aeropuertos
             modelBuilder.Entity<Aeropuerto>().HasData(
                 new Aeropuerto { Codigo = "MAD", Nombre = "Adolfo Suárez", Ciudad = "Madrid" },
                 new Aeropuerto { Codigo = "BCN", Nombre = "El Prat", Ciudad = "Barcelona" },
@@ -38,6 +47,7 @@ namespace Vuelos.API.Data
                 new Aeropuerto { Codigo = "SYD", Nombre = "Kingsford Smith", Ciudad = "Sydney" }
             );
 
+            // Seed de Vuelos
             modelBuilder.Entity<Vuelo>().HasData(
                 new Vuelo { Id = 1, OrigenCodigo = "MAD", DestinoCodigo = "BCN", Fecha = DateTime.Now.AddDays(1), Hora = "08:00", Precio = 55, AsientosTotales = 150, AsientosOcupados = 120, Activo = true },
                 new Vuelo { Id = 2, OrigenCodigo = "BCN", DestinoCodigo = "MAD", Fecha = DateTime.Now.AddDays(1).AddHours(5), Hora = "13:00", Precio = 60, AsientosTotales = 150, AsientosOcupados = 40, Activo = true },

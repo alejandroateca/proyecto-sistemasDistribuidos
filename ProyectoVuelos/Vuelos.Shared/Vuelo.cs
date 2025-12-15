@@ -8,7 +8,7 @@ namespace Vuelos.Shared
     {
         public int Id { get; set; }
 
-        public string OrigenCodigo { get; set; } = string.Empty; 
+        public string OrigenCodigo { get; set; } = string.Empty;
 
         [ForeignKey("OrigenCodigo")]
         public Aeropuerto? Origen { get; set; }
@@ -25,6 +25,6 @@ namespace Vuelos.Shared
         public int AsientosOcupados { get; set; }
         public int AsientosDisponibles => AsientosTotales - AsientosOcupados;
         public bool Activo { get; set; } = true;
-        
+        public ICollection<Reserva> Reservas { get; set; } = new List<Reserva>();
     }
 }

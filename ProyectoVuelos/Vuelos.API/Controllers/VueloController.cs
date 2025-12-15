@@ -40,29 +40,23 @@ namespace Vuelos.API.Controllers
         {
             // PASO 1: Consulta SQL (Traemos los datos crudos a la memoria)
             var listaEntidades = await _context.Vuelos
-                .Include(v => v.Origen)  // Traemos el Aeropuerto Origen
-                .Include(v => v.Destino) // Traemos el Aeropuerto Destino
-                .Where(v => v.Activo)    // Solo los que no están borrados
-                .ToListAsync();          // <-- AQUÍ SE EJECUTA LA CONSULTA EN BD
+                .Include(v => v.Origen)
+                .Include(v => v.Destino)
+                // ✅ CORRECCIÓN CLAVE: Quitamos el .Where(v => v.Activo) para devolver TODOS los vuelos.
+                .ToListAsync();
 
             // PASO 2: Conversión a DTO (En memoria C#)
-            // Aquí ya podemos usar funciones de C# como .ToShortDateString() sin que explote
             var listaDtos = listaEntidades.Select(v => new VueloDto
             {
                 Id = v.Id,
-                // Si el aeropuerto viene cargado usamos la Ciudad, si no, usamos el código
                 Origen = v.Origen != null ? v.Origen.Ciudad : v.OrigenCodigo,
                 Destino = v.Destino != null ? v.Destino.Ciudad : v.DestinoCodigo,
-
-                Fecha = v.Fecha.ToShortDateString(), // Formato: dd/MM/yyyy
+                Fecha = v.Fecha.ToShortDateString(),
                 Hora = v.Hora,
                 Precio = v.Precio,
                 AsientosTotales = v.AsientosTotales,
                 AsientosOcupados = v.AsientosOcupados,
-
-                // Calculamos esta propiedad que no existe en BD
                 AsientosDisponibles = v.AsientosTotales - v.AsientosOcupados,
-
                 Activo = v.Activo
             }).ToList();
 
@@ -102,7 +96,32 @@ namespace Vuelos.API.Controllers
             return Ok(vueloDto);
         }
 
-        // DELETE: api/Vuelo/5 (Borrado Lógico)
+        // 🟢 NUEVA ACCIÓN: PUT para Cancelar (Activo = false) o Reactivar (Activo = true)
+        // Usada por el método GestionarVuelo del cliente.
+        [HttpPut("estado/{id}")]
+        public async Task<IActionResult> ActualizarEstadoVuelo(int id, [FromQuery] bool activo)
+        {
+            var vuelo = await _context.Vuelos.FindAsync(id);
+
+            if (vuelo == null)
+            {
+                return NotFound("Vuelo no encontrado.");
+            }
+
+            // Si ya está en el estado deseado, lo notificamos pero no es un error crítico.
+            if (vuelo.Activo == activo)
+            {
+                return Ok($"El vuelo {id} ya está en estado {(activo ? "Activo" : "Cancelado")}.");
+            }
+
+            vuelo.Activo = activo;
+            await _context.SaveChangesAsync();
+
+            return Ok($"Vuelo {id} actualizado a {(activo ? "Activo" : "Cancelado")}.");
+        }
+
+
+        // DELETE: api/Vuelo/5 (Borrado Lógico Antiguo)
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteVuelo(int id)
         {
@@ -113,11 +132,13 @@ namespace Vuelos.API.Controllers
                 return NotFound();
             }
 
-            // No lo borramos físicamente, solo lo desactivamos
+            // 🟢 Borrado Lógico: Solo desactivamos.
             vuelo.Activo = false;
 
             await _context.SaveChangesAsync();
 
+            // Nota: Este método ya no es usado directamente por el botón de Cancelar del cliente,
+            // pero lo dejamos funcional como borrado lógico, aunque el cliente usa la nueva acción PUT.
             return NoContent();
         }
     }

@@ -6,8 +6,24 @@
 <PageTitle>Mis Reservas</PageTitle>
 
 <div class="container mt-4">
+
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>🎟️ Listado de Reservas</h3>
+
+        <div class="d-flex align-items-center gap-4">
+
+            <h3>Listado de Reservas</h3>
+
+            <div class="d-flex align-items-center gap-2">
+                <label for="filtroEstado" class="form-label mb-0 fw-bold text-muted">Filtrar:</label>
+
+                <select id="filtroEstado" class="form-select form-select-sm w-auto" value="@FiltroEstado" @onchange="HandleFiltroChange">
+                    <option value="Activas">Activas</option>
+                    <option value="Inactivas">Canceladas</option>
+                    <option value="Todos">Todos</option>
+                </select>
+            </div>
+        </div>
+
         <a href="vuelos" class="btn btn-primary">
             + Nueva Reserva
         </a>
@@ -22,10 +38,10 @@
             <p>Cargando reservas...</p>
         </div>
     }
-    else if (reservas.Count == 0)
+    else if (!ReservasFiltradas.Any())
     {
         <div class="alert alert-info shadow-sm">
-            No hay reservas activas en este momento. ¡Ve a "Vuelos" para crear una!
+            No hay reservas @(FiltroEstado == "Todos" ? "activas o canceladas" : FiltroEstado.ToLower()) para mostrar.
         </div>
     }
     else
@@ -38,13 +54,15 @@
                         <th>Pasajero</th>
                         <th>Vuelo</th>
                         <th>Fecha Vuelo</th>
+                        <th>Fecha Reserva</th>
                         <th class="text-center">Plazas</th>
+                        <th class="text-center">Estado</th>
                         <th class="text-end">Total Pagado</th>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var item in reservas)
+                    @foreach (var item in ReservasFiltradas)
                     {
                         <tr>
                             <td>@item.Id</td>
@@ -53,16 +71,34 @@
                                 @item.Origen <i class="bi bi-arrow-right text-muted"></i> @item.Destino
                             </td>
                             <td>@item.FechaVuelo</td>
+                            <td>@item.FechaReserva</td>
                             <td class="text-center">
                                 <span class="badge bg-secondary rounded-pill">@item.AsientosReservados</span>
+                            </td>
+                            <td class="text-center">
+                                @if (item.Activa)
+                                {
+                                    <span class="badge bg-success">Activa</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Cancelada</span>
+                                }
                             </td>
                             <td class="text-end fw-bold text-success">
                                 @item.ImportePagado.ToString("C")
                             </td>
                             <td class="text-center">
-                                <button class="btn btn-outline-danger btn-sm" @onclick="() => CancelarReserva(item.Id)">
-                                    🗑️ Cancelar
-                                </button>
+                                @if (item.Activa)
+                                {
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => CancelarReserva(item.Id)">
+                                        🗑️ Cancelar
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Finalizada</span>
+                                }
                             </td>
                         </tr>
                     }
@@ -74,17 +110,32 @@
 
 @code {
     private List<ReservaDto>? reservas;
+    private string FiltroEstado = "Activas";
+
+    private IEnumerable<ReservaDto> ReservasFiltradas => reservas switch
+    {
+        null => Enumerable.Empty<ReservaDto>(),
+        _ when FiltroEstado == "Activas" => reservas.Where(r => r.Activa).OrderByDescending(r => r.Id),
+        _ when FiltroEstado == "Inactivas" => reservas.Where(r => !r.Activa).OrderByDescending(r => r.Id),
+        _ => reservas.OrderByDescending(r => r.Id)
+    };
 
     protected override async Task OnInitializedAsync()
     {
         await CargarReservas();
     }
 
+    private void HandleFiltroChange(ChangeEventArgs e)
+    {
+        FiltroEstado = e.Value?.ToString() ?? "Activas";
+        StateHasChanged();
+    }
+
+
     private async Task CargarReservas()
     {
         try
         {
-            // OJO: Asegúrate de que tu Controller devuelve List<ReservaDto>
             reservas = await Http.GetFromJsonAsync<List<ReservaDto>>("api/Reserva");
         }
         catch (Exception ex)
@@ -95,7 +146,6 @@
 
     private async Task CancelarReserva(int id)
     {
-        // Confirmación sencilla usando JavaScript nativo
         bool confirmado = await JS.InvokeAsync<bool>("confirm", $"¿Seguro que quieres cancelar la reserva #{id}?");
 
         if (confirmado)
@@ -104,12 +154,11 @@
 
             if (respuesta.IsSuccessStatusCode)
             {
-                // Si se borra bien, recargamos la lista
                 await CargarReservas();
             }
             else
             {
-                Console.WriteLine("Error al cancelar la reserva.");
+                Console.WriteLine($"Error al cancelar la reserva ID {id}.");
             }
         }
     }

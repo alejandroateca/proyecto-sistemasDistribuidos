@@ -53,25 +53,21 @@ namespace Vuelos.API.Controllers
             var reservasEntidad = await _context.Reservas
                 .Include(r => r.Vuelo).ThenInclude(v => v.Origen)
                 .Include(r => r.Vuelo).ThenInclude(v => v.Destino)
-                .Where(r => r.Activa)
-                .ToListAsync(); // <--- AQUÍ SE EJECUTA EL SQL
+                // ✅ CORRECCIÓN: Eliminamos el filtro .Where(r => r.Activa)
+                .ToListAsync();
 
-            // PASO 2: Convertir a DTO en memoria (Aquí sí funciona ToShortDateString)
+            // PASO 2: Convertir a DTO en memoria
             var reservasDto = reservasEntidad.Select(r => new ReservaDto
             {
                 Id = r.Id,
                 NombrePasajero = r.NombrePasajero,
-                // Mapeo seguro con ?
                 Origen = r.Vuelo != null && r.Vuelo.Origen != null ? r.Vuelo.Origen.Ciudad : "Desconocido",
                 Destino = r.Vuelo != null && r.Vuelo.Destino != null ? r.Vuelo.Destino.Ciudad : "Desconocido",
-
-                FechaVuelo = r.Vuelo != null ? r.Vuelo.Fecha.ToShortDateString() : "N/A", // C# Puro
-
+                FechaVuelo = r.Vuelo != null ? r.Vuelo.Fecha.ToShortDateString() : "N/A",
                 AsientosReservados = r.AsientosReservados,
                 ImportePagado = r.ImportePagado,
-                Activa = r.Activa,
-
-                FechaReserva = r.FechaReserva.ToShortDateString() // C# Puro
+                Activa = r.Activa, // Este valor se usará para el filtro en el cliente
+                FechaReserva = r.FechaReserva.ToShortDateString()
             }).ToList();
 
             return Ok(reservasDto);
@@ -85,7 +81,7 @@ namespace Vuelos.API.Controllers
             var r = await _context.Reservas
                 .Include(r => r.Vuelo).ThenInclude(v => v.Origen)
                 .Include(r => r.Vuelo).ThenInclude(v => v.Destino)
-                .FirstOrDefaultAsync(x => x.Id == id); // SQL Puro
+                .FirstOrDefaultAsync(x => x.Id == id);
 
             if (r == null)
             {
@@ -99,13 +95,10 @@ namespace Vuelos.API.Controllers
                 NombrePasajero = r.NombrePasajero,
                 Origen = r.Vuelo != null && r.Vuelo.Origen != null ? r.Vuelo.Origen.Ciudad : "Desconocido",
                 Destino = r.Vuelo != null && r.Vuelo.Destino != null ? r.Vuelo.Destino.Ciudad : "Desconocido",
-
                 FechaVuelo = r.Vuelo != null ? r.Vuelo.Fecha.ToShortDateString() : "N/A",
-
                 AsientosReservados = r.AsientosReservados,
                 ImportePagado = r.ImportePagado,
                 Activa = r.Activa,
-
                 FechaReserva = r.FechaReserva.ToShortDateString()
             };
 
@@ -129,6 +122,7 @@ namespace Vuelos.API.Controllers
                 if (reserva.Vuelo.AsientosOcupados < 0) reserva.Vuelo.AsientosOcupados = 0;
             }
 
+            // 🟢 BORRADO LÓGICO: Solo cambiamos el estado
             reserva.Activa = false;
             await _context.SaveChangesAsync();
 

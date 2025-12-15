@@ -1,83 +1,189 @@
 ﻿@page "/vuelos"
-
+@using Vuelos.Shared
 @inject HttpClient Http
+@inject IJSRuntime JS
 
 <PageTitle>Gestión de Vuelos</PageTitle>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h3>✈️ Inventario de Vuelos</h3>
-</div>
+<div class="container mt-4">
 
-@if (vuelos == null)
-{
-    <div class="alert alert-info">Cargando inventario...</div>
-}
-else
-{
-    <table class="table table-striped table-hover shadow-sm">
-        <thead class="table-dark">
-            <tr>
-                <th>Ruta</th>
-                <th>Fecha y Hora</th>
-                <th>Precio</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var vuelo in vuelos)
-            {
-                <tr>
-                    <td>
-                        <strong>@vuelo.Origen</strong> <span class="text-muted">➝</span> <strong>@vuelo.Destino</strong>
-                    </td>
-                    <td>@vuelo.Fecha - @vuelo.Hora</td>
-                    <td>@vuelo.Precio €</td>
-                    <td>
-                        @if (vuelo.AsientosDisponibles > 10)
-                        {
-                            <span class="badge bg-success">@vuelo.AsientosDisponibles libres</span>
-                        }
-                        else if (vuelo.AsientosDisponibles > 0)
-                        {
-                            <span class="badge bg-warning text-dark">Últimos @vuelo.AsientosDisponibles</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-danger">Agotado</span>
-                        }
-                    </td>
-                    <td>
-                        @if (vuelo.AsientosDisponibles > 0)
-                        {
-                            <a href="crear-reserva/@vuelo.Id" class="btn btn-primary btn-sm">
-                                Reservar
-                            </a>
-                        }
-                        else
-                        {
-                            <button class="btn btn-secondary btn-sm" disabled>Lleno</button>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div class="d-flex align-items-center gap-4">
+
+            <h3>Inventario de Vuelos</h3>
+
+            <div class="d-flex align-items-center gap-2">
+                <label for="filtroEstado" class="form-label mb-0 fw-bold text-muted">Filtrar:</label>
+
+                <select id="filtroEstado" class="form-select form-select-sm w-auto" value="@FiltroEstado" @onchange="HandleFiltroChange">
+                    <option value="Activos">Activos</option>
+                    <option value="Inactivos">Cancelados</option>
+                    <option value="Todos">Todos</option>
+                </select>
+            </div>
+        </div>
+
+        <a href="crear-vuelo" class="btn btn-success">
+            + Nuevo Vuelo
+        </a>
+    </div>
+
+    @if (vuelos == null)
+    {
+        <div class="alert alert-info">Cargando inventario...</div>
+    }
+    else if (!VuelosFiltrados.Any())
+    {
+        <div class="alert alert-warning shadow-sm">
+            No hay vuelos @(FiltroEstado == "Todos" ? "disponibles" : FiltroEstado.ToLower()) para mostrar.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover shadow-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Ruta</th>
+                        <th>Fecha y Hora</th>
+                        <th>Precio</th>
+                        <th class="text-center">Asientos</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Reservar</th>
+                        <th class="text-center">Gestión</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var vuelo in VuelosFiltrados)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@vuelo.Origen</strong> <i class="bi bi-arrow-right text-muted"></i> <strong>@vuelo.Destino</strong>
+                            </td>
+                            <td>@vuelo.Fecha - @vuelo.Hora</td>
+                            <td>@vuelo.Precio.ToString("C")</td>
+                            <td class="text-center">
+                                @if (vuelo.AsientosDisponibles > 10)
+                                {
+                                    <span class="badge bg-success">@vuelo.AsientosDisponibles libres</span>
+                                }
+                                else if (vuelo.AsientosDisponibles > 0)
+                                {
+                                    <span class="badge bg-warning text-dark">Últimos @vuelo.AsientosDisponibles</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Agotado</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (vuelo.Activo)
+                                {
+                                    <span class="badge bg-primary">Programado</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Cancelado</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (vuelo.AsientosDisponibles > 0 && vuelo.Activo)
+                                {
+                                    <a href="crear-reserva/@vuelo.Id" class="btn btn-primary btn-sm">
+                                        Reservar
+                                    </a>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-secondary btn-sm" disabled>
+                                        @(vuelo.Activo ? "Lleno" : "No disponible")
+                                    </button>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (vuelo.Activo)
+                                {
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => GestionarVuelo(vuelo.Id, false)">
+                                        Cancelar
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-outline-success btn-sm" @onclick="() => GestionarVuelo(vuelo.Id, true)">
+                                        Reactivar
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
 
 @code {
     private List<VueloDto>? vuelos;
+    private string FiltroEstado = "Activos";
+
+    // Propiedad calculada para aplicar el filtro
+    private IEnumerable<VueloDto> VuelosFiltrados => vuelos switch
+    {
+        null => Enumerable.Empty<VueloDto>(),
+        _ when FiltroEstado == "Activos" => vuelos.Where(v => v.Activo).OrderBy(v => v.Fecha),
+        _ when FiltroEstado == "Inactivos" => vuelos.Where(v => !v.Activo).OrderBy(v => v.Fecha),
+        _ => vuelos.OrderBy(v => v.Fecha) // Todos
+    };
 
     protected override async Task OnInitializedAsync()
     {
+        await CargarVuelos();
+    }
+
+    // Método para forzar la actualización del filtro
+    private void HandleFiltroChange(ChangeEventArgs e)
+    {
+        FiltroEstado = e.Value?.ToString() ?? "Activos";
+        StateHasChanged();
+    }
+
+    private async Task CargarVuelos()
+    {
         try
         {
-            // Pide la lista a la API
+            // OJO: La API GetVuelos del servidor también debe devolver TODOS los vuelos,
+            // no solo los activos, para que el filtro funcione.
             vuelos = await Http.GetFromJsonAsync<List<VueloDto>>("api/Vuelo");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al cargar vuelos: {ex.Message}");
+        }
+    }
+
+    private async Task GestionarVuelo(int id, bool activar)
+    {
+        string accion = activar ? "Reactivar" : "Cancelar";
+        string mensaje = activar ? $"¿Seguro que quieres reactivar el vuelo #{id}?" : $"¿Seguro que quieres CANCELAR el vuelo #{id}?";
+
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", mensaje);
+
+        if (confirmado)
+        {
+            // ⚠️ Creamos una API para gestionar el estado, ya que la API GET/POST/DELETE no es ideal para PATCH/PUT de estado.
+            var respuesta = await Http.PutAsync($"api/Vuelo/estado/{id}?activo={activar}", null);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                // Si la gestión es exitosa, recargamos los datos
+                await CargarVuelos();
+            }
+            else
+            {
+                Console.WriteLine($"Error al {accion.ToLower()} el vuelo. Código: {respuesta.StatusCode}");
+                // Aquí podrías leer el error del contenido si la API lo proporciona.
+            }
         }
     }
 }

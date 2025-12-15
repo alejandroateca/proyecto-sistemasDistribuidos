@@ -19,5 +19,6 @@ namespace Vuelos.Shared
         public int AsientosOcupados { get; set; }
         public int AsientosDisponibles { get; set; }
         public bool Activo {  get; set; }
+        public int CantidadReservas { get; set; }
     }
 }

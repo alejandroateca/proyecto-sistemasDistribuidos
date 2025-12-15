@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore; // 1. IMPORTANTE: Para poder usar SQL Server
 using Vuelos.API.Data;             // 2. IMPORTANTE: Para encontrar tu VuelosContext
                                    // (Si esta línea se pone roja, verifica el namespace en VuelosContext.cs)
@@ -23,7 +24,9 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers();
+//builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(x =>
+   x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
 // Configuración de Swagger (Documentación de la API)
 builder.Services.AddEndpointsApiExplorer();

@@ -1,13 +1,18 @@
 ﻿@page "/crear-reserva/{VueloId:int}"
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@using Vuelos.Shared
 
 <div class="container mt-4" style="max-width: 600px;">
     <h3>📝 Nueva Reserva Manual</h3>
 
     @if (vuelo == null)
     {
-        <p>Cargando datos del vuelo...</p>
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
     }
     else
     {
@@ -34,6 +39,12 @@
                     Total a Cobrar: <strong>@(vuelo.Precio* nuevaReserva.AsientosReservados) €</strong>
                 </div>
 
+                @if (!string.IsNullOrEmpty(mensajeError))
+                {
+                    <div class="alert alert-danger mb-3 text-center">
+                        ⚠️ @mensajeError
+                    </div>
+                }
                 <div class="d-grid gap-2">
                     <button class="btn btn-success" @onclick="GuardarReserva">Confirmar Reserva</button>
                     <button class="btn btn-outline-secondary" @onclick="Volver">Cancelar</button>
@@ -48,31 +59,48 @@
 
     private VueloDto? vuelo;
     private Reserva nuevaReserva = new Reserva();
+    private string? mensajeError; // Variable para controlar el mensaje
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Cargamos info del vuelo para mostrar precio y ciudades
-        vuelo = await Http.GetFromJsonAsync<VueloDto>($"api/Vuelo/{VueloId}");
-
-        // 2. Preparamos el objeto reserva
-        nuevaReserva.VueloId = VueloId;
-        nuevaReserva.AsientosReservados = 1;
+        // 1. Cargamos info del vuelo
+        try
+        {
+            vuelo = await Http.GetFromJsonAsync<VueloDto>($"api/Vuelo/{VueloId}");
+            nuevaReserva.VueloId = VueloId;
+            nuevaReserva.AsientosReservados = 1;
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "No se pudo cargar el vuelo.";
+        }
     }
 
     private async Task GuardarReserva()
     {
-        // Enviamos al POST
+        // Limpiamos errores previos antes de intentar guardar
+        mensajeError = null;
+
+        // Validacion simple Frontend
+        if (string.IsNullOrWhiteSpace(nuevaReserva.NombrePasajero))
+        {
+            mensajeError = "Por favor, escribe el nombre del pasajero.";
+            return;
+        }
+
         var respuesta = await Http.PostAsJsonAsync("api/Reserva", nuevaReserva);
 
         if (respuesta.IsSuccessStatusCode)
         {
-            // Si sale bien, vamos al listado de reservas
+            // ✅ ÉXITO: Redirigimos al listado
             Navigation.NavigateTo("reservas");
         }
         else
         {
-            // Aquí podrías mostrar un error
-            Console.WriteLine("Error al crear reserva");
+            // ❌ ERROR: Leemos qué pasó y lo mostramos en la alerta roja
+            var error = await respuesta.Content.ReadAsStringAsync();
+            mensajeError = string.IsNullOrEmpty(error) ? "Error al procesar la reserva." : error;
+            Console.WriteLine($"Error: {mensajeError}");
         }
     }
 

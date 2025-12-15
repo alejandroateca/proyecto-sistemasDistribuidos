@@ -1,9 +1,158 @@
 ﻿@page "/"
+@using Vuelos.Shared
+@inject HttpClient Http
 
-<PageTitle>Vuelos UNEAT</PageTitle>
+<PageTitle>Dashboard - Vuelos UNEAT</PageTitle>
 
-<div class="min-vh-100 d-flex justify-content-center align-items-center">
-    <h1 style="font-size: 4rem; font-weight: bold; text-align: center; color: #00bfff;">
-        Vuelos UNEAT
-    </h1>
+<div class="p-5 mb-4 rounded-4 shadow-lg position-relative overflow-hidden text-white"
+     style="background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover; background-position: center;">
+    <div class="position-relative z-1 container-fluid py-2">
+        <h1 class="display-4 fw-bold mb-3"><span style="color: #4db5ff;">Vuelos</span> UNEAT</h1>
+        <p class="col-md-8 fs-4 text-light opacity-90 mb-4">Gestión de flota y análisis de pasajeros.</p>
+        <a href="vuelos" class="btn btn-light btn-lg px-4 py-2 fw-bold shadow-sm rounded-pill transform-hover" style="border:none;">
+            Ver Inventario Completo ➝
+        </a>
+    </div>
 </div>
+
+<div class="container pb-5">
+    @if (stats == null)
+    {
+        <div class="d-flex justify-content-center mt-5">
+            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card border-0 shadow-sm h-100" style="border-left: 5px solid #0d6efd !important;">
+                    <div class="card-body">
+                        <h6 class="text-muted text-uppercase mb-2">Vuelos Operativos</h6>
+                        <h2 class="display-4 fw-bold text-primary">@stats.VuelosActivos</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card border-0 shadow-sm h-100" style="border-left: 5px solid #dc3545 !important;">
+                    <div class="card-body">
+                        <h6 class="text-muted text-uppercase mb-2">Reservas Canceladas</h6>
+                        <h2 class="display-4 fw-bold text-danger">@stats.ReservasCanceladas</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card border-0 shadow-sm h-100" style="border-left: 5px solid #198754 !important;">
+                    <div class="card-body">
+                        <h6 class="text-muted text-uppercase mb-2">Recaudación (Activa)</h6>
+                        <h2 class="display-4 fw-bold text-success">@stats.DineroRecaudado.ToString("N0") €</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h5 class="mb-0 fw-bold">🌍 Destinos más visitados</h5>
+                        <small class="text-muted">Por total de asientos ocupados</small>
+                    </div>
+                    <div class="card-body">
+                        @RenderChart(stats.TopDestinos, "bg-primary")
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h5 class="mb-0 fw-bold">🏆 Mejores Clientes</h5>
+                        <small class="text-muted">Por total de asientos comprados</small>
+                    </div>
+                    <div class="card-body">
+                        @RenderChart(stats.TopPasajeros, "bg-success")
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private DashboardDto? stats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Llamamos al endpoint del Dashboard
+            stats = await Http.GetFromJsonAsync<DashboardDto>("api/Vuelo/dashboard");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando dashboard: {ex.Message}");
+        }
+    }
+
+    // CORRECCIÓN APLICADA AQUÍ:
+    // Convertimos a 'int' y usamos Math.Round para evitar problemas con comas decimales (ej: 90,9%)
+    private int GetWidth(int valor, int max)
+    {
+        if (max == 0) return 0;
+        return (int)Math.Round(((double)valor / max) * 100);
+    }
+
+    // Método para dibujar las barras (reutilizable)
+    private RenderFragment RenderChart(List<DatoEstadistico> datos, string colorClass) => __builder =>
+    {
+        if (datos != null && datos.Any())
+        {
+            var max = datos.Max(d => d.Valor); // El valor más alto define el 100%
+
+            foreach (var d in datos)
+            {
+                var porcentaje = GetWidth(d.Valor, max);
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-bold">@d.Etiqueta</span>
+                        <span class="fw-bold text-dark">@d.Valor <small class="text-muted fw-normal">asientos</small></span>
+                    </div>
+                    <div class="progress" style="height: 10px; border-radius: 5px; background-color: #e9ecef;">
+                        <div class="progress-bar @colorClass" role="progressbar"
+                             style="width: @porcentaje%;"
+                             aria-valuenow="@d.Valor" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="text-center py-5 text-muted">
+                <p>No hay datos registrados aún.</p>
+            </div>
+        }
+    };
+}
+
+<style>
+    .transform-hover {
+        transition: all 0.3s ease;
+    }
+
+        .transform-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2) !important;
+        }
+
+    /* Colores degradados para las barras */
+    .bg-primary {
+        background: linear-gradient(90deg, #007bff 0%, #00d2ff 100%) !important;
+    }
+
+    .bg-success {
+        background: linear-gradient(90deg, #198754 0%, #20c997 100%) !important;
+    }
+</style>

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vuelos.API.Data;
 
@@ -11,9 +12,11 @@ using Vuelos.API.Data;
 namespace Vuelos.API.Migrations
 {
     [DbContext(typeof(VuelosContext))]
-    partial class VuelosContextModelSnapshot : ModelSnapshot
+    [Migration("20251215215442_RelacionVuelosReservas")]
+    partial class RelacionVuelosReservas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

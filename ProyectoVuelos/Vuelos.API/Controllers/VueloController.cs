@@ -38,14 +38,14 @@ namespace Vuelos.API.Controllers
         [HttpGet]
         public async Task<ActionResult<List<VueloDto>>> GetVuelos()
         {
-            // PASO 1: Consulta SQL (Traemos los datos crudos a la memoria)
+            // PASO 1: Consulta SQL
             var listaEntidades = await _context.Vuelos
                 .Include(v => v.Origen)
                 .Include(v => v.Destino)
-                // ✅ CORRECCIÓN CLAVE: Quitamos el .Where(v => v.Activo) para devolver TODOS los vuelos.
+                .Include(v => v.Reservas) // <--- IMPORTANTE: Cargamos las reservas para poder contarlas
                 .ToListAsync();
 
-            // PASO 2: Conversión a DTO (En memoria C#)
+            // PASO 2: Conversión a DTO
             var listaDtos = listaEntidades.Select(v => new VueloDto
             {
                 Id = v.Id,
@@ -57,7 +57,10 @@ namespace Vuelos.API.Controllers
                 AsientosTotales = v.AsientosTotales,
                 AsientosOcupados = v.AsientosOcupados,
                 AsientosDisponibles = v.AsientosTotales - v.AsientosOcupados,
-                Activo = v.Activo
+                Activo = v.Activo,
+
+                // <--- AQUÍ GUARDAMOS EL CONTEO PARA EL GRÁFICO
+                CantidadReservas = v.Reservas != null ? v.Reservas.Count : 0
             }).ToList();
 
             return Ok(listaDtos);
@@ -94,6 +97,64 @@ namespace Vuelos.API.Controllers
             };
 
             return Ok(vueloDto);
+        }
+
+        // GET: api/Vuelo/dashboard
+        [HttpGet("dashboard")]
+        public async Task<ActionResult<DashboardDto>> GetDashboardStats()
+        {
+            var stats = new DashboardDto();
+
+            // 1. Traemos Vuelos (con Destino) y Reservas (con Vuelo para saber el precio)
+            var vuelos = await _context.Vuelos
+                .Include(v => v.Reservas)
+                .Include(v => v.Destino)
+                .ToListAsync();
+
+            var reservas = await _context.Reservas
+                .Include(r => r.Vuelo) // IMPORTANTE: Necesitamos el vuelo para saber el precio
+                .ToListAsync();
+
+            // 2. Cálculos KPIs
+            stats.VuelosActivos = vuelos.Count(v => v.Activo);
+            stats.ReservasCanceladas = reservas.Count(r => !r.Activa);
+
+            // CORRECCIÓN DEL ERROR: Calculamos el total manualmente
+            // Sumamos: (Asientos * Precio) solo de las reservas activas
+            stats.DineroRecaudado = reservas
+                .Where(r => r.Activa && r.Vuelo != null)
+// El ? significa "si existe", y el ?? 0 significa "si es nulo, usa 0"
+.Sum(r => r.AsientosReservados * (r.Vuelo?.Precio ?? 0));
+
+            // 3. TOP DESTINOS (Por suma de asientos ocupados)
+            stats.TopDestinos = vuelos
+                .Where(v => v.Destino != null)
+                .GroupBy(v => v.Destino?.Ciudad ?? "Desconocido")
+                .Select(g => new DatoEstadistico
+                {
+                    Etiqueta = g.Key,
+                    // Sumamos los asientos de todas las reservas activas de esos vuelos
+                    Valor = g.SelectMany(v => v.Reservas).Where(r => r.Activa).Sum(r => r.AsientosReservados)
+                })
+                .Where(x => x.Valor > 0)
+                .OrderByDescending(x => x.Valor)
+                .Take(5)
+                .ToList();
+
+            // 4. TOP PASAJEROS (Nuevo requisito)
+            stats.TopPasajeros = reservas
+                .Where(r => r.Activa)
+                .GroupBy(r => r.NombrePasajero)
+                .Select(g => new DatoEstadistico
+                {
+                    Etiqueta = g.Key,
+                    Valor = g.Sum(r => r.AsientosReservados) // Sumamos cuántos asientos compró en total
+                })
+                .OrderByDescending(x => x.Valor)
+                .Take(5)
+                .ToList();
+
+            return Ok(stats);
         }
 
         // 🟢 NUEVA ACCIÓN: PUT para Cancelar (Activo = false) o Reactivar (Activo = true)

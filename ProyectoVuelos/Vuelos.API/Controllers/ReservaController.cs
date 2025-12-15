@@ -21,25 +21,26 @@ namespace Vuelos.API.Controllers
         {
             var vuelo = await _context.Vuelos.FindAsync(reserva.VueloId);
 
-            if (vuelo == null)
-            {
-                return NotFound("El vuelo indicado no existe.");
-            }
+            if (vuelo == null) return NotFound("El vuelo indicado no existe.");
 
             if (vuelo.AsientosDisponibles < reserva.AsientosReservados)
-            {
                 return BadRequest($"No hay suficientes asientos. Solo quedan {vuelo.AsientosDisponibles}.");
-            }
 
+            // Lógica de actualización
             vuelo.AsientosOcupados += reserva.AsientosReservados;
             reserva.ImportePagado = vuelo.Precio * reserva.AsientosReservados;
             reserva.FechaReserva = DateTime.Now;
             reserva.Activa = true;
 
+            // IMPORTANTE: Rompemos la relación circular manual para que no de problemas al guardar
+            reserva.Vuelo = null;
+
             _context.Reservas.Add(reserva);
             await _context.SaveChangesAsync();
 
-            return Ok(reserva);
+            // ✅ CAMBIO CLAVE: Devolvemos Ok() vacío.
+            // Esto es más ligero y evita errores de JSON en el navegador.
+            return Ok();
         }
 
         [HttpGet]

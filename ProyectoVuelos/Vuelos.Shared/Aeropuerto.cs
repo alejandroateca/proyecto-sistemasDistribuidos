@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Vuelos.Shared
 {
+    [Table("Aeropuertos")]
     public class Aeropuerto
     {
         [Key]

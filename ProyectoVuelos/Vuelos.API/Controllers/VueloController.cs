@@ -7,38 +7,15 @@ namespace Vuelos.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class VueloController : ControllerBase // <-- CAMBIADO A SINGULAR
+    public class VueloController : ControllerBase
     {
         private readonly VuelosContext _context;
 
-        // El constructor debe tener el MISMO nombre que la clase
-        public VueloController(VuelosContext context) // <-- CAMBIADO A SINGULAR
+        public VueloController(VuelosContext context) 
         {
             _context = context;
         }
 
-        // GET: api/vuelo
-        [HttpGet]
-        public async Task<ActionResult<List<Vuelo>>> GetVuelos()
-        {
-            return await _context.Vuelos.ToListAsync();
-        }
-
-        // GET: api/vuelo/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Vuelo>> GetVuelo(int id)
-        {
-            var vuelo = await _context.Vuelos.FindAsync(id);
-
-            if (vuelo == null)
-            {
-                return NotFound("El vuelo no existe.");
-            }
-
-            return Ok(vuelo);
-        }
-
-        // POST: api/vuelo
         [HttpPost]
         public async Task<ActionResult<Vuelo>> CrearVuelo(Vuelo vuelo)
         {
@@ -53,17 +30,72 @@ namespace Vuelos.API.Controllers
             return CreatedAtAction(nameof(GetVuelo), new { id = vuelo.Id }, vuelo);
         }
 
-        // DELETE: api/vuelo/5
+        [HttpGet]
+        public async Task<ActionResult<List<VueloVista>>> GetVuelos()
+        {
+            var vuelos = await _context.Vuelos
+                .Where(v => v.Activo) // 1. Solo vuelos activos
+                .Select(v => new VueloVista // 2. Convertimos a VueloVista
+                {
+                    Id = v.Id,
+                    // Aquí sacamos el nombre de la ciudad gracias a la relación
+                    Origen = v.Origen != null ? v.Origen.Ciudad : "Desconocido",
+                    Destino = v.Destino != null ? v.Destino.Ciudad : "Desconocido",
+
+                    Fecha = v.Fecha.ToShortDateString(),
+                    Hora = v.Hora,
+                    Precio = v.Precio,
+
+                    // Tus datos de asientos
+                    AsientosTotales = v.AsientosTotales,
+                    AsientosOcupados = v.AsientosOcupados,
+                    AsientosDisponibles = v.AsientosDisponibles
+                })
+                .ToListAsync();
+
+            return Ok(vuelos);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<VueloVista>> GetVuelo(int id)
+        {
+            // Buscamos el vuelo que coincida con el ID y transformamos a VueloVista
+            var vuelo = await _context.Vuelos
+                .Where(v => v.Id == id && v.Activo) // Filtro por ID y que esté activo
+                .Select(v => new VueloVista
+                {
+                    Id = v.Id,
+                    Origen = v.Origen != null ? v.Origen.Ciudad : "Desconocido",
+                    Destino = v.Destino != null ? v.Destino.Ciudad : "Desconocido",
+                    Fecha = v.Fecha.ToShortDateString(),
+                    Hora = v.Hora,
+                    Precio = v.Precio,
+                    AsientosTotales = v.AsientosTotales,
+                    AsientosOcupados = v.AsientosOcupados,
+                    AsientosDisponibles = v.AsientosDisponibles
+                })
+                .FirstOrDefaultAsync(); // Cogemos el primero (o null si no existe)
+
+            if (vuelo == null)
+            {
+                return NotFound("El vuelo no existe.");
+            }
+
+            return Ok(vuelo);
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteVuelo(int id)
         {
             var vuelo = await _context.Vuelos.FindAsync(id);
+
             if (vuelo == null)
             {
                 return NotFound();
             }
 
-            _context.Vuelos.Remove(vuelo);
+            vuelo.Activo = false;
+
             await _context.SaveChangesAsync();
 
             return NoContent();

@@ -1,0 +1,6 @@
+@Vuelos.API_HostAddress = http://localhost:5082
+
+GET {{Vuelos.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

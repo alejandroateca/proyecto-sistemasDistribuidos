@@ -11,11 +11,12 @@ namespace Vuelos.API.Controllers
     {
         private readonly VuelosContext _context;
 
-        public VueloController(VuelosContext context) 
+        public VueloController(VuelosContext context)
         {
             _context = context;
         }
 
+        // POST: api/Vuelo
         [HttpPost]
         public async Task<ActionResult<Vuelo>> CrearVuelo(Vuelo vuelo)
         {
@@ -24,66 +25,84 @@ namespace Vuelos.API.Controllers
                 return BadRequest("Error: No puede haber más asientos ocupados que totales.");
             }
 
+            // Aseguramos que se guarde como activo por defecto
+            vuelo.Activo = true;
+
             _context.Vuelos.Add(vuelo);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetVuelo), new { id = vuelo.Id }, vuelo);
         }
 
+        // GET: api/Vuelo
         [HttpGet]
-        public async Task<ActionResult<List<VueloVista>>> GetVuelos()
+        public async Task<ActionResult<List<VueloDto>>> GetVuelos()
         {
-            var vuelos = await _context.Vuelos
-                .Where(v => v.Activo) // 1. Solo vuelos activos
-                .Select(v => new VueloVista // 2. Convertimos a VueloVista
-                {
-                    Id = v.Id,
-                    // Aquí sacamos el nombre de la ciudad gracias a la relación
-                    Origen = v.Origen != null ? v.Origen.Ciudad : "Desconocido",
-                    Destino = v.Destino != null ? v.Destino.Ciudad : "Desconocido",
+            // PASO 1: Consulta SQL (Traemos los datos crudos a la memoria)
+            var listaEntidades = await _context.Vuelos
+                .Include(v => v.Origen)  // Traemos el Aeropuerto Origen
+                .Include(v => v.Destino) // Traemos el Aeropuerto Destino
+                .Where(v => v.Activo)    // Solo los que no están borrados
+                .ToListAsync();          // <-- AQUÍ SE EJECUTA LA CONSULTA EN BD
 
-                    Fecha = v.Fecha.ToShortDateString(),
-                    Hora = v.Hora,
-                    Precio = v.Precio,
+            // PASO 2: Conversión a DTO (En memoria C#)
+            // Aquí ya podemos usar funciones de C# como .ToShortDateString() sin que explote
+            var listaDtos = listaEntidades.Select(v => new VueloDto
+            {
+                Id = v.Id,
+                // Si el aeropuerto viene cargado usamos la Ciudad, si no, usamos el código
+                Origen = v.Origen != null ? v.Origen.Ciudad : v.OrigenCodigo,
+                Destino = v.Destino != null ? v.Destino.Ciudad : v.DestinoCodigo,
 
-                    // Tus datos de asientos
-                    AsientosTotales = v.AsientosTotales,
-                    AsientosOcupados = v.AsientosOcupados,
-                    AsientosDisponibles = v.AsientosDisponibles
-                })
-                .ToListAsync();
+                Fecha = v.Fecha.ToShortDateString(), // Formato: dd/MM/yyyy
+                Hora = v.Hora,
+                Precio = v.Precio,
+                AsientosTotales = v.AsientosTotales,
+                AsientosOcupados = v.AsientosOcupados,
 
-            return Ok(vuelos);
+                // Calculamos esta propiedad que no existe en BD
+                AsientosDisponibles = v.AsientosTotales - v.AsientosOcupados,
+
+                Activo = v.Activo
+            }).ToList();
+
+            return Ok(listaDtos);
         }
 
+        // GET: api/Vuelo/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<VueloVista>> GetVuelo(int id)
+        public async Task<ActionResult<VueloDto>> GetVuelo(int id)
         {
-            // Buscamos el vuelo que coincida con el ID y transformamos a VueloVista
-            var vuelo = await _context.Vuelos
-                .Where(v => v.Id == id && v.Activo) // Filtro por ID y que esté activo
-                .Select(v => new VueloVista
-                {
-                    Id = v.Id,
-                    Origen = v.Origen != null ? v.Origen.Ciudad : "Desconocido",
-                    Destino = v.Destino != null ? v.Destino.Ciudad : "Desconocido",
-                    Fecha = v.Fecha.ToShortDateString(),
-                    Hora = v.Hora,
-                    Precio = v.Precio,
-                    AsientosTotales = v.AsientosTotales,
-                    AsientosOcupados = v.AsientosOcupados,
-                    AsientosDisponibles = v.AsientosDisponibles
-                })
-                .FirstOrDefaultAsync(); // Cogemos el primero (o null si no existe)
+            // PASO 1: Buscamos el vuelo en BD
+            var v = await _context.Vuelos
+                .Include(v => v.Origen)
+                .Include(v => v.Destino)
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (vuelo == null)
+            if (v == null)
             {
                 return NotFound("El vuelo no existe.");
             }
 
-            return Ok(vuelo);
+            // PASO 2: Convertimos a DTO manualmente
+            var vueloDto = new VueloDto
+            {
+                Id = v.Id,
+                Origen = v.Origen != null ? v.Origen.Ciudad : v.OrigenCodigo,
+                Destino = v.Destino != null ? v.Destino.Ciudad : v.DestinoCodigo,
+                Fecha = v.Fecha.ToShortDateString(),
+                Hora = v.Hora,
+                Precio = v.Precio,
+                AsientosTotales = v.AsientosTotales,
+                AsientosOcupados = v.AsientosOcupados,
+                AsientosDisponibles = v.AsientosTotales - v.AsientosOcupados,
+                Activo = v.Activo
+            };
+
+            return Ok(vueloDto);
         }
 
+        // DELETE: api/Vuelo/5 (Borrado Lógico)
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteVuelo(int id)
         {
@@ -94,6 +113,7 @@ namespace Vuelos.API.Controllers
                 return NotFound();
             }
 
+            // No lo borramos físicamente, solo lo desactivamos
             vuelo.Activo = false;
 
             await _context.SaveChangesAsync();

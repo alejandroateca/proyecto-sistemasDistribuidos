@@ -1,0 +1,80 @@
+﻿@page "/crear-reserva/{VueloId:int}"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="container mt-4" style="max-width: 600px;">
+    <h3>📝 Nueva Reserva Manual</h3>
+
+    @if (vuelo == null)
+    {
+        <p>Cargando datos del vuelo...</p>
+    }
+    else
+    {
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                Vuelo: @vuelo.Origen ➝ @vuelo.Destino
+            </div>
+            <div class="card-body">
+                <p><strong>Fecha:</strong> @vuelo.Fecha @vuelo.Hora</p>
+                <p><strong>Precio Base:</strong> @vuelo.Precio €</p>
+                <hr />
+
+                <div class="mb-3">
+                    <label class="form-label">Nombre del Pasajero / Cliente:</label>
+                    <input @bind="nuevaReserva.NombrePasajero" class="form-control" placeholder="Nombre completo" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Cantidad de Asientos:</label>
+                    <input type="number" @bind="nuevaReserva.AsientosReservados" class="form-control" min="1" max="10" />
+                </div>
+
+                <div class="alert alert-secondary text-center">
+                    Total a Cobrar: <strong>@(vuelo.Precio* nuevaReserva.AsientosReservados) €</strong>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" @onclick="GuardarReserva">Confirmar Reserva</button>
+                    <button class="btn btn-outline-secondary" @onclick="Volver">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int VueloId { get; set; }
+
+    private VueloDto? vuelo;
+    private Reserva nuevaReserva = new Reserva();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Cargamos info del vuelo para mostrar precio y ciudades
+        vuelo = await Http.GetFromJsonAsync<VueloDto>($"api/Vuelo/{VueloId}");
+
+        // 2. Preparamos el objeto reserva
+        nuevaReserva.VueloId = VueloId;
+        nuevaReserva.AsientosReservados = 1;
+    }
+
+    private async Task GuardarReserva()
+    {
+        // Enviamos al POST
+        var respuesta = await Http.PostAsJsonAsync("api/Reserva", nuevaReserva);
+
+        if (respuesta.IsSuccessStatusCode)
+        {
+            // Si sale bien, vamos al listado de reservas
+            Navigation.NavigateTo("reservas");
+        }
+        else
+        {
+            // Aquí podrías mostrar un error
+            Console.WriteLine("Error al crear reserva");
+        }
+    }
+
+    private void Volver() => Navigation.NavigateTo("vuelos");
+}

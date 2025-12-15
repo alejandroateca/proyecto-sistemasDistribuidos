@@ -1,0 +1,83 @@
+﻿@page "/vuelos"
+
+@inject HttpClient Http
+
+<PageTitle>Gestión de Vuelos</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>✈️ Inventario de Vuelos</h3>
+</div>
+
+@if (vuelos == null)
+{
+    <div class="alert alert-info">Cargando inventario...</div>
+}
+else
+{
+    <table class="table table-striped table-hover shadow-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>Ruta</th>
+                <th>Fecha y Hora</th>
+                <th>Precio</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var vuelo in vuelos)
+            {
+                <tr>
+                    <td>
+                        <strong>@vuelo.Origen</strong> <span class="text-muted">➝</span> <strong>@vuelo.Destino</strong>
+                    </td>
+                    <td>@vuelo.Fecha - @vuelo.Hora</td>
+                    <td>@vuelo.Precio €</td>
+                    <td>
+                        @if (vuelo.AsientosDisponibles > 10)
+                        {
+                            <span class="badge bg-success">@vuelo.AsientosDisponibles libres</span>
+                        }
+                        else if (vuelo.AsientosDisponibles > 0)
+                        {
+                            <span class="badge bg-warning text-dark">Últimos @vuelo.AsientosDisponibles</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">Agotado</span>
+                        }
+                    </td>
+                    <td>
+                        @if (vuelo.AsientosDisponibles > 0)
+                        {
+                            <a href="crear-reserva/@vuelo.Id" class="btn btn-primary btn-sm">
+                                Reservar
+                            </a>
+                        }
+                        else
+                        {
+                            <button class="btn btn-secondary btn-sm" disabled>Lleno</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<VueloDto>? vuelos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Pide la lista a la API
+            vuelos = await Http.GetFromJsonAsync<List<VueloDto>>("api/Vuelo");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar vuelos: {ex.Message}");
+        }
+    }
+}

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Vuelos.Shared
 {
-    public class VueloVista
+    public class VueloDto
     {
         public int Id { get; set; }
 
@@ -18,5 +18,6 @@ namespace Vuelos.Shared
         public int AsientosTotales { get; set; }
         public int AsientosOcupados { get; set; }
         public int AsientosDisponibles { get; set; }
+        public bool Activo {  get; set; }
     }
 }

@@ -46,69 +46,72 @@ namespace Vuelos.API.Controllers
             return Ok(reserva);
         }
 
-        // ================================================================
-        // 2. GET: LISTAR TODAS (Usando ReservaDto)
-        // ================================================================
         [HttpGet]
         public async Task<ActionResult<List<ReservaDto>>> GetReservas()
         {
-            var reservas = await _context.Reservas
+            // PASO 1: Traer datos "crudos" de la BD a la Memoria
+            var reservasEntidad = await _context.Reservas
                 .Include(r => r.Vuelo).ThenInclude(v => v.Origen)
                 .Include(r => r.Vuelo).ThenInclude(v => v.Destino)
                 .Where(r => r.Activa)
-                .Select(r => new ReservaDto // <--- AQUÍ USAMOS EL DTO
-                {
-                    Id = r.Id,
-                    NombrePasajero = r.NombrePasajero,
-                    // Mapeo seguro con ?
-                    Origen = r.Vuelo != null && r.Vuelo.Origen != null ? r.Vuelo.Origen.Ciudad : "Desconocido",
-                    Destino = r.Vuelo != null && r.Vuelo.Destino != null ? r.Vuelo.Destino.Ciudad : "Desconocido",
-                    FechaVuelo = r.Vuelo != null ? r.Vuelo.Fecha.ToShortDateString() : "N/A",
-                    AsientosReservados = r.AsientosReservados,
-                    ImportePagado = r.ImportePagado,
-                    Activa = r.Activa,
-                    FechaReserva = r.FechaReserva.ToShortDateString()
-                })
-                .ToListAsync();
+                .ToListAsync(); // <--- AQUÍ SE EJECUTA EL SQL
 
-            return Ok(reservas);
+            // PASO 2: Convertir a DTO en memoria (Aquí sí funciona ToShortDateString)
+            var reservasDto = reservasEntidad.Select(r => new ReservaDto
+            {
+                Id = r.Id,
+                NombrePasajero = r.NombrePasajero,
+                // Mapeo seguro con ?
+                Origen = r.Vuelo != null && r.Vuelo.Origen != null ? r.Vuelo.Origen.Ciudad : "Desconocido",
+                Destino = r.Vuelo != null && r.Vuelo.Destino != null ? r.Vuelo.Destino.Ciudad : "Desconocido",
+
+                FechaVuelo = r.Vuelo != null ? r.Vuelo.Fecha.ToShortDateString() : "N/A", // C# Puro
+
+                AsientosReservados = r.AsientosReservados,
+                ImportePagado = r.ImportePagado,
+                Activa = r.Activa,
+
+                FechaReserva = r.FechaReserva.ToShortDateString() // C# Puro
+            }).ToList();
+
+            return Ok(reservasDto);
         }
 
-        // ================================================================
-        // 3. GET: BUSCAR UNA (Usando ReservaDto)
-        // ================================================================
+
         [HttpGet("{id}")]
         public async Task<ActionResult<ReservaDto>> GetReserva(int id)
         {
-            var reserva = await _context.Reservas
+            // PASO 1: Buscar en BD
+            var r = await _context.Reservas
                 .Include(r => r.Vuelo).ThenInclude(v => v.Origen)
                 .Include(r => r.Vuelo).ThenInclude(v => v.Destino)
-                .Where(r => r.Id == id)
-                .Select(r => new ReservaDto // <--- AQUÍ USAMOS EL DTO
-                {
-                    Id = r.Id,
-                    NombrePasajero = r.NombrePasajero,
-                    Origen = r.Vuelo != null ? r.Vuelo.Origen.Ciudad : "Desconocido",
-                    Destino = r.Vuelo != null ? r.Vuelo.Destino.Ciudad : "Desconocido",
-                    FechaVuelo = r.Vuelo != null ? r.Vuelo.Fecha.ToShortDateString() : "N/A",
-                    AsientosReservados = r.AsientosReservados,
-                    ImportePagado = r.ImportePagado,
-                    Activa = r.Activa,
-                    FechaReserva = r.FechaReserva.ToShortDateString()
-                })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.Id == id); // SQL Puro
 
-            if (reserva == null)
+            if (r == null)
             {
                 return NotFound("La reserva no existe.");
             }
 
-            return Ok(reserva);
+            // PASO 2: Convertir a DTO manualmente
+            var reservaDto = new ReservaDto
+            {
+                Id = r.Id,
+                NombrePasajero = r.NombrePasajero,
+                Origen = r.Vuelo != null && r.Vuelo.Origen != null ? r.Vuelo.Origen.Ciudad : "Desconocido",
+                Destino = r.Vuelo != null && r.Vuelo.Destino != null ? r.Vuelo.Destino.Ciudad : "Desconocido",
+
+                FechaVuelo = r.Vuelo != null ? r.Vuelo.Fecha.ToShortDateString() : "N/A",
+
+                AsientosReservados = r.AsientosReservados,
+                ImportePagado = r.ImportePagado,
+                Activa = r.Activa,
+
+                FechaReserva = r.FechaReserva.ToShortDateString()
+            };
+
+            return Ok(reservaDto);
         }
 
-        // ================================================================
-        // 4. DELETE: CANCELAR (Devuelve asientos)
-        // ================================================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> CancelarReserva(int id)
         {

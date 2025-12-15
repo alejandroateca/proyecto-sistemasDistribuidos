@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="Vuelos.API/Vuelos.API.csproj" />
-  <Project Path="Vuelos.Client/Vuelos.Client.csproj" />
-  <Project Path="Vuelos.Shared/Vuelos.Shared.csproj" />
-</Solution>

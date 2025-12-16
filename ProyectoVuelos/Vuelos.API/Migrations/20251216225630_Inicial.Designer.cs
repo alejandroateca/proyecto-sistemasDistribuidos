@@ -12,8 +12,8 @@ using Vuelos.API.Data;
 namespace Vuelos.API.Migrations
 {
     [DbContext(typeof(VuelosContext))]
-    [Migration("20251215183750_InicialSinCiclos")]
-    partial class InicialSinCiclos
+    [Migration("20251216225630_Inicial")]
+    partial class Inicial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -123,6 +123,8 @@ namespace Vuelos.API.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("VueloId");
+
                     b.ToTable("Reservas");
                 });
 
@@ -177,7 +179,7 @@ namespace Vuelos.API.Migrations
                             AsientosOcupados = 120,
                             AsientosTotales = 150,
                             DestinoCodigo = "BCN",
-                            Fecha = new DateTime(2025, 12, 16, 19, 37, 50, 568, DateTimeKind.Local).AddTicks(9978),
+                            Fecha = new DateTime(2025, 12, 17, 23, 56, 30, 514, DateTimeKind.Local).AddTicks(4546),
                             Hora = "08:00",
                             OrigenCodigo = "MAD",
                             Precio = 55m
@@ -189,7 +191,7 @@ namespace Vuelos.API.Migrations
                             AsientosOcupados = 40,
                             AsientosTotales = 150,
                             DestinoCodigo = "MAD",
-                            Fecha = new DateTime(2025, 12, 17, 0, 37, 50, 569, DateTimeKind.Local).AddTicks(25),
+                            Fecha = new DateTime(2025, 12, 18, 4, 56, 30, 514, DateTimeKind.Local).AddTicks(4591),
                             Hora = "13:00",
                             OrigenCodigo = "BCN",
                             Precio = 60m
@@ -201,7 +203,7 @@ namespace Vuelos.API.Migrations
                             AsientosOcupados = 299,
                             AsientosTotales = 300,
                             DestinoCodigo = "JFK",
-                            Fecha = new DateTime(2025, 12, 17, 19, 37, 50, 569, DateTimeKind.Local).AddTicks(28),
+                            Fecha = new DateTime(2025, 12, 18, 23, 56, 30, 514, DateTimeKind.Local).AddTicks(4594),
                             Hora = "10:30",
                             OrigenCodigo = "MAD",
                             Precio = 450m
@@ -213,7 +215,7 @@ namespace Vuelos.API.Migrations
                             AsientosOcupados = 150,
                             AsientosTotales = 300,
                             DestinoCodigo = "LHR",
-                            Fecha = new DateTime(2025, 12, 18, 19, 37, 50, 569, DateTimeKind.Local).AddTicks(30),
+                            Fecha = new DateTime(2025, 12, 19, 23, 56, 30, 514, DateTimeKind.Local).AddTicks(4596),
                             Hora = "18:00",
                             OrigenCodigo = "JFK",
                             Precio = 380m
@@ -225,7 +227,7 @@ namespace Vuelos.API.Migrations
                             AsientosOcupados = 300,
                             AsientosTotales = 300,
                             DestinoCodigo = "JFK",
-                            Fecha = new DateTime(2025, 12, 19, 19, 37, 50, 569, DateTimeKind.Local).AddTicks(32),
+                            Fecha = new DateTime(2025, 12, 20, 23, 56, 30, 514, DateTimeKind.Local).AddTicks(4598),
                             Hora = "09:15",
                             OrigenCodigo = "LHR",
                             Precio = 410m
@@ -237,7 +239,7 @@ namespace Vuelos.API.Migrations
                             AsientosOcupados = 10,
                             AsientosTotales = 180,
                             DestinoCodigo = "MAD",
-                            Fecha = new DateTime(2025, 12, 16, 19, 37, 50, 569, DateTimeKind.Local).AddTicks(37),
+                            Fecha = new DateTime(2025, 12, 17, 23, 56, 30, 514, DateTimeKind.Local).AddTicks(4600),
                             Hora = "07:45",
                             OrigenCodigo = "CDG",
                             Precio = 90m
@@ -249,7 +251,7 @@ namespace Vuelos.API.Migrations
                             AsientosOcupados = 90,
                             AsientosTotales = 180,
                             DestinoCodigo = "LHR",
-                            Fecha = new DateTime(2025, 12, 20, 19, 37, 50, 569, DateTimeKind.Local).AddTicks(39),
+                            Fecha = new DateTime(2025, 12, 21, 23, 56, 30, 514, DateTimeKind.Local).AddTicks(4602),
                             Hora = "16:20",
                             OrigenCodigo = "MAD",
                             Precio = 120m
@@ -261,7 +263,7 @@ namespace Vuelos.API.Migrations
                             AsientosOcupados = 200,
                             AsientosTotales = 400,
                             DestinoCodigo = "HND",
-                            Fecha = new DateTime(2025, 12, 25, 19, 37, 50, 569, DateTimeKind.Local).AddTicks(41),
+                            Fecha = new DateTime(2025, 12, 26, 23, 56, 30, 514, DateTimeKind.Local).AddTicks(4604),
                             Hora = "02:00",
                             OrigenCodigo = "DXB",
                             Precio = 850m
@@ -273,7 +275,7 @@ namespace Vuelos.API.Migrations
                             AsientosOcupados = 50,
                             AsientosTotales = 350,
                             DestinoCodigo = "SYD",
-                            Fecha = new DateTime(2025, 12, 26, 19, 37, 50, 569, DateTimeKind.Local).AddTicks(43),
+                            Fecha = new DateTime(2025, 12, 27, 23, 56, 30, 514, DateTimeKind.Local).AddTicks(4606),
                             Hora = "22:30",
                             OrigenCodigo = "HND",
                             Precio = 700m
@@ -285,11 +287,22 @@ namespace Vuelos.API.Migrations
                             AsientosOcupados = 0,
                             AsientosTotales = 100,
                             DestinoCodigo = "JFK",
-                            Fecha = new DateTime(2025, 12, 14, 19, 37, 50, 569, DateTimeKind.Local).AddTicks(45),
+                            Fecha = new DateTime(2025, 12, 15, 23, 56, 30, 514, DateTimeKind.Local).AddTicks(4608),
                             Hora = "12:00",
                             OrigenCodigo = "MAD",
                             Precio = 0m
                         });
+                });
+
+            modelBuilder.Entity("Vuelos.Shared.Reserva", b =>
+                {
+                    b.HasOne("Vuelos.Shared.Vuelo", "Vuelo")
+                        .WithMany("Reservas")
+                        .HasForeignKey("VueloId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Vuelo");
                 });
 
             modelBuilder.Entity("Vuelos.Shared.Vuelo", b =>
@@ -309,6 +322,11 @@ namespace Vuelos.API.Migrations
                     b.Navigation("Destino");
 
                     b.Navigation("Origen");
+                });
+
+            modelBuilder.Entity("Vuelos.Shared.Vuelo", b =>
+                {
+                    b.Navigation("Reservas");
                 });
 #pragma warning restore 612, 618
         }

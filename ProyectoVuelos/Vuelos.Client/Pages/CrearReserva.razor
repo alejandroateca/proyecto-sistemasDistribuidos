@@ -59,11 +59,10 @@
 
     private VueloDto? vuelo;
     private Reserva nuevaReserva = new Reserva();
-    private string? mensajeError; // Variable para controlar el mensaje
+    private string? mensajeError;
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Cargamos info del vuelo
         try
         {
             vuelo = await Http.GetFromJsonAsync<VueloDto>($"api/Vuelo/{VueloId}");
@@ -78,10 +77,8 @@
 
     private async Task GuardarReserva()
     {
-        // Limpiamos errores previos antes de intentar guardar
         mensajeError = null;
 
-        // Validacion simple Frontend
         if (string.IsNullOrWhiteSpace(nuevaReserva.NombrePasajero))
         {
             mensajeError = "Por favor, escribe el nombre del pasajero.";
@@ -92,12 +89,10 @@
 
         if (respuesta.IsSuccessStatusCode)
         {
-            // ✅ ÉXITO: Redirigimos al listado
             Navigation.NavigateTo("reservas");
         }
         else
         {
-            // ❌ ERROR: Leemos qué pasó y lo mostramos en la alerta roja
             var error = await respuesta.Content.ReadAsStringAsync();
             mensajeError = string.IsNullOrEmpty(error) ? "Error al procesar la reserva." : error;
             Console.WriteLine($"Error: {mensajeError}");

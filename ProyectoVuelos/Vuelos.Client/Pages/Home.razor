@@ -1,5 +1,6 @@
 ﻿@page "/"
 @using Vuelos.Shared
+@using Vuelos.Shared.DTOs
 @inject HttpClient Http
 
 <PageTitle>Dashboard - Vuelos UNEAT</PageTitle>
@@ -87,7 +88,6 @@
     {
         try
         {
-            // Llamamos al endpoint del Dashboard
             stats = await Http.GetFromJsonAsync<DashboardDto>("api/Vuelo/dashboard");
         }
         catch (Exception ex)
@@ -96,20 +96,17 @@
         }
     }
 
-    // CORRECCIÓN APLICADA AQUÍ:
-    // Convertimos a 'int' y usamos Math.Round para evitar problemas con comas decimales (ej: 90,9%)
     private int GetWidth(int valor, int max)
     {
         if (max == 0) return 0;
         return (int)Math.Round(((double)valor / max) * 100);
     }
 
-    // Método para dibujar las barras (reutilizable)
     private RenderFragment RenderChart(List<DatoEstadistico> datos, string colorClass) => __builder =>
     {
         if (datos != null && datos.Any())
         {
-            var max = datos.Max(d => d.Valor); // El valor más alto define el 100%
+            var max = datos.Max(d => d.Valor);
 
             foreach (var d in datos)
             {

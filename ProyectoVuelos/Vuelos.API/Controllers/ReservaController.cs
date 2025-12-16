@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Vuelos.API.Data; // Asumo que tus Entidades de DB (Vuelo, Reserva) están aquí.
+using Vuelos.API.Data;
 using Vuelos.Shared;
 
 namespace Vuelos.API.Controllers
@@ -26,28 +26,23 @@ namespace Vuelos.API.Controllers
             if (vuelo.AsientosDisponibles < reserva.AsientosReservados)
                 return BadRequest($"No hay suficientes asientos. Solo quedan {vuelo.AsientosDisponibles}.");
 
-            // Lógica de actualización
             vuelo.AsientosOcupados += reserva.AsientosReservados;
             reserva.ImportePagado = vuelo.Precio * reserva.AsientosReservados;
             reserva.FechaReserva = DateTime.Now;
             reserva.Activa = true;
 
-            // IMPORTANTE: Rompemos la relación circular manual para que no de problemas al guardar
             reserva.Vuelo = null;
 
             _context.Reservas.Add(reserva);
             await _context.SaveChangesAsync();
 
-            // ✅ CAMBIO CLAVE: Devolvemos Ok() vacío.
-            // Esto es más ligero y evita errores de JSON en el navegador.
             return Ok();
         }
 
         [HttpGet]
         public async Task<ActionResult<List<ReservaDto>>> GetReservas()
         {
-            // PASO 1: Consulta SQL (Traemos TODAS las reservas)
-            // 🟢 Usamos la sintaxis segura para asegurar que la navegación funciona
+
             var reservasEntidad = await _context.Reservas
                 .Include(r => r.Vuelo)
                 .ThenInclude(v => v!.Origen)
@@ -56,13 +51,11 @@ namespace Vuelos.API.Controllers
                 .AsNoTracking()
                 .ToListAsync();
 
-            // PASO 2: Conversión a DTO con manejo de nulos
             var reservasDto = reservasEntidad.Select(r => new ReservaDto
             {
                 Id = r.Id,
                 NombrePasajero = r.NombrePasajero,
 
-                // Mapeo seguro con '?.': Si Vuelo es nulo, devuelve "Vuelo Cancelado"
                 Origen = r.Vuelo?.Origen?.Ciudad ?? "Vuelo Cancelado",
                 Destino = r.Vuelo?.Destino?.Ciudad ?? "Vuelo Cancelado",
 

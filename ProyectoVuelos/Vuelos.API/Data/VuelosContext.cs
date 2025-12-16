@@ -28,7 +28,7 @@ namespace Vuelos.API.Data
                 .HasForeignKey(v => v.DestinoCodigo)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // NUEVO: Relación Vuelo → Reservas
+            // Relación Vuelo → Reservas
             modelBuilder.Entity<Vuelo>()
                 .HasMany(v => v.Reservas)
                 .WithOne(r => r.Vuelo)

@@ -1,0 +1,52 @@
+@startuml Biblioteca
+' Configuración visual
+skinparam classAttributeIconSize 0
+hide circle
+
+package "Vuelos.Shared" {
+
+    package "Entities" {
+        class Aeropuerto {
+            + Id : int
+            + Nombre : string
+            + Ciudad : string
+        }
+
+        class Vuelo {
+            + Id : int
+            + Origen : Aeropuerto
+            + Destino : Aeropuerto
+            + Fecha : DateTime
+            + Precio : decimal
+        }
+
+        class Reserva {
+            + Id : int
+            + VueloId : int
+            + PasajeroNombre : string
+            + FechaReserva : DateTime
+        }
+    }
+
+    package "DTOs" {
+        class VueloDto {
+            + Propiedades simplificadas...
+        }
+        class ReservaDto {
+            + Datos para transferencia...
+        }
+        class DashboardDto {
+            + Resumen estadístico...
+        }
+    }
+}
+
+' Relaciones inferidas
+Vuelo --> "1" Aeropuerto : Origen
+Vuelo --> "1" Aeropuerto : Destino
+Reserva --> "1" Vuelo : Referencia
+
+Vuelo ..> VueloDto : Proyección
+Reserva ..> ReservaDto : Proyección
+
+@enduml

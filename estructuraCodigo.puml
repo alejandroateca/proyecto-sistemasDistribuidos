@@ -1,0 +1,37 @@
+@startuml EstructuraCodigo
+skinparam componentStyle uml2
+
+package "Cliente (Navegador)" {
+    [Vuelos.Client] as Client
+    note right of Client
+      Pages:
+      - ListarVuelos
+      - CrearReserva
+    end note
+}
+
+package "Servidor" {
+    [Vuelos.API] as API
+    database "SQL Database" as DB
+    
+    note right of API
+      Controllers:
+      - VueloController
+      - ReservaController
+    end note
+}
+
+package "Librería Común" {
+    [Vuelos.Shared] as Shared
+    note bottom of Shared
+      DTOs & Modelos:
+      - Vuelo, Reserva
+      - VueloDto, ReservaDto
+    end note
+}
+
+Client .down.> API : HTTP / JSON
+Client .right.> Shared : Usa
+API .left.> Shared : Usa
+API .down.> DB : Entity Framework
+@enduml

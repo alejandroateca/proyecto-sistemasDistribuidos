@@ -1,0 +1,56 @@
+@startuml Arquitectura
+
+' --- CONFIGURACIÓN DE ESTILO ---
+title Diagrama de Arquitectura - ProyectoVuelos
+skinparam componentStyle uml2
+skinparam node {
+    BackgroundColor White
+    BorderColor Black
+}
+left to right direction
+
+' --- NODOS (HARDWARE / ENTORNOS) ---
+
+node "💻 Dispositivo del Cliente" as UserDevice {
+    component "Navegador Web" as Browser {
+        artifact "Vuelos.Client.dll\n(Blazor WebAssembly)" as ClientApp
+        note bottom of ClientApp
+            Renderiza la UI y
+            consume la API
+        end note
+    }
+}
+
+node "☁️ Servidor Backend" as AppServer {
+    component "ASP.NET Core Runtime" {
+        artifact "Vuelos.API.dll\n(Controller & Logic)" as APIApp
+        
+        component "VuelosContext\n(Entity Framework Core)" as EFCore
+    }
+}
+
+node "🗄️ Servidor de Base de Datos" as DBServer {
+    database "SQL Server" as SQL {
+        folder "VuelosDB" {
+            [dbo.Vuelos]
+            [dbo.Aeropuertos]
+            [dbo.Reservas]
+        }
+    }
+}
+
+' --- BIBLIOTECA COMPARTIDA ---
+artifact "📦 Vuelos.Shared.dll\n(Modelos / DTOs)" as SharedLib
+
+' --- RELACIONES ---
+
+' Comunicación de red
+ClientApp --> APIApp : HTTPS / JSON\n(REST API)
+APIApp --> EFCore : LINQ Calls
+EFCore --> SQL : TCP / T-SQL Query
+
+' Dependencias de código (La biblioteca Shared)
+ClientApp ..> SharedLib : <<usa>>
+APIApp ..> SharedLib : <<usa>>
+
+@enduml
